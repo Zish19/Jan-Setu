@@ -21,10 +21,18 @@ app.add_exception_handler(Exception, global_exception_handler)
 from .api.v1.signals import router as signals_router
 from .api.v1.optimize import router as optimize_router
 from .api.v1.assistant import router as assistant_router
+from .api.v1.clusters import router as clusters_router
+from .api.v1.dashboard import router as dashboard_router
+from .api.v1.trust import router as trust_router
+from .api.v1.audit import router as audit_router
 
 app.include_router(signals_router, prefix="/api/v1/signals")
 app.include_router(optimize_router, prefix="/api/v1/optimize")
 app.include_router(assistant_router, prefix="/api/v1/assistant")
+app.include_router(clusters_router, prefix="/api/v1/clusters")
+app.include_router(dashboard_router, prefix="/api/v1/dashboard")
+app.include_router(trust_router, prefix="/api/v1/trust")
+app.include_router(audit_router, prefix="/api/v1/audit")
 
 @app.get("/health")
 def health_check():

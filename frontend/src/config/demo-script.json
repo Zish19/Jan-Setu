@@ -1,0 +1,42 @@
+[
+  {
+    "scene": "intro",
+    "duration": 5000,
+    "action": "demo.hero"
+  },
+  {
+    "scene": "citizen",
+    "duration": 10000,
+    "action": "demo.submitReport"
+  },
+  {
+    "scene": "pipeline",
+    "duration": 12000,
+    "action": "demo.runPipeline"
+  },
+  {
+    "scene": "dashboard",
+    "duration": 5000,
+    "action": "demo.openDashboard"
+  },
+  {
+    "scene": "optimizer",
+    "duration": 10000,
+    "action": "demo.runOptimizer"
+  },
+  {
+    "scene": "assistant",
+    "duration": 12000,
+    "action": "demo.askJanSetu"
+  },
+  {
+    "scene": "trust",
+    "duration": 8000,
+    "action": "demo.openTrustPortal"
+  },
+  {
+    "scene": "closing",
+    "duration": 5000,
+    "action": "demo.end"
+  }
+]
