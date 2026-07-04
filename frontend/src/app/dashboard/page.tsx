@@ -1,6 +1,12 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { Button } from '@/components/ui/Button';
+
+// Must disable SSR for Leaflet maps since it requires `window`
+const ConstituencyMap = dynamic(() => import('@/features/dashboard/ConstituencyMap'), { ssr: false });
 
 function KpiCard({ title, value, subtitle }: { title: string, value: string, subtitle: string }) {
   return (
@@ -17,6 +23,8 @@ function KpiCard({ title, value, subtitle }: { title: string, value: string, sub
 }
 
 export default function DashboardPage() {
+  const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
+
   return (
     <div className="h-full flex flex-col gap-6">
       
@@ -33,18 +41,27 @@ export default function DashboardPage() {
         
         {/* Left: Live Feed & Filters */}
         <div className="lg:col-span-3 neo-box bg-neo-surface flex flex-col overflow-hidden">
-          <div className="p-4 border-b-4 border-neo-border bg-neo-bg font-black uppercase">
-            Live Issue Feed
+          <div className="p-4 border-b-4 border-neo-border bg-neo-bg font-black uppercase flex justify-between items-center">
+            <span>Live Issue Feed</span>
+            {selectedCluster && (
+              <span className="text-xs bg-neo-accent text-white px-2 py-1 neo-box cursor-pointer" onClick={() => setSelectedCluster(null)}>
+                Clear Selection
+              </span>
+            )}
           </div>
           <div className="p-4 overflow-y-auto flex-1 space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="neo-box p-4 bg-neo-bg hover:bg-neo-surface cursor-pointer">
+              <div 
+                key={i} 
+                className={`neo-box p-4 cursor-pointer transition-colors ${selectedCluster === String(i) ? 'bg-neo-accent text-white' : 'bg-neo-bg hover:bg-neo-surface'}`}
+                onClick={() => setSelectedCluster(String(i))}
+              >
                 <div className="flex justify-between items-start">
-                  <span className="font-bold text-neo-danger">High Priority</span>
-                  <span className="text-xs font-bold text-neo-text/50">10m ago</span>
+                  <span className={`font-bold ${selectedCluster === String(i) ? 'text-white' : 'text-neo-danger'}`}>High Priority</span>
+                  <span className="text-xs font-bold opacity-50">10m ago</span>
                 </div>
                 <div className="font-black mt-2">Severe Road Damage</div>
-                <div className="text-sm mt-1 text-neo-text/80">Ward 4 • 12 Reports</div>
+                <div className="text-sm mt-1 opacity-80">Ward 4 • 12 Reports</div>
               </div>
             ))}
           </div>
@@ -54,11 +71,10 @@ export default function DashboardPage() {
         <div className="lg:col-span-6 neo-box bg-neo-bg relative overflow-hidden flex flex-col">
           <div className="p-4 border-b-4 border-neo-border bg-neo-surface font-black uppercase z-10 flex justify-between items-center">
             <span>Constituency Map</span>
-            <span className="text-xs bg-neo-accent text-white px-2 py-1 neo-box">LIVE</span>
+            <span className="text-xs bg-neo-accent text-white px-2 py-1 neo-box animate-pulse">LIVE</span>
           </div>
-          <div className="flex-1 flex items-center justify-center bg-gray-200">
-            {/* Map Placeholder */}
-            <span className="font-bold text-xl text-neo-text/40">(Leaflet Map Injection Point)</span>
+          <div className="flex-1 bg-gray-200 relative z-0">
+            <ConstituencyMap onClusterSelect={setSelectedCluster} />
           </div>
         </div>
 
