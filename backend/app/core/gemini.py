@@ -44,7 +44,7 @@ class GeminiClient:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type((ResourceExhausted, InternalServerError))
     )
-    def generate_json(self, prompt: str, schema: Type[BaseModel], use_pro: bool = False, system_instruction: Optional[str] = None) -> BaseModel:
+    def generate_json(self, prompt: str, schema: Type[BaseModel], use_pro: bool = False, system_instruction: Optional[str] = None, temperature: float = 1.0) -> BaseModel:
         """Generates structured JSON mapped to a Pydantic schema."""
         req_id = str(uuid.uuid4())
         model = self._get_model(use_pro, system_instruction)
@@ -57,6 +57,7 @@ class GeminiClient:
                 generation_config=genai.GenerationConfig(
                     response_mime_type="application/json",
                     response_schema=schema,
+                    temperature=temperature
                 )
             )
             
