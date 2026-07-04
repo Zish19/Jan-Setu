@@ -20,9 +20,11 @@ app.add_exception_handler(Exception, global_exception_handler)
 # Include Routers
 from .api.v1.signals import router as signals_router
 from .api.v1.optimize import router as optimize_router
+from .api.v1.assistant import router as assistant_router
 
-app.include_router(signals_router, prefix="/api/v1")
-app.include_router(optimize_router, prefix="/api/v1")
+app.include_router(signals_router, prefix="/api/v1/signals")
+app.include_router(optimize_router, prefix="/api/v1/optimize")
+app.include_router(assistant_router, prefix="/api/v1/assistant")
 
 @app.get("/health")
 def health_check():

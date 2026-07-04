@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/Button';
 
 import BudgetOptimizerPanel from '@/features/dashboard/BudgetOptimizerPanel';
+import AskJanSetuPanel from '@/features/dashboard/AskJanSetuPanel';
 
 // Must disable SSR for Leaflet maps since it requires `window`
 const ConstituencyMap = dynamic(() => import('@/features/dashboard/ConstituencyMap'), { ssr: false });
@@ -106,25 +107,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Right: AI Panel / Ask Jan-Setu */}
-        <div className="lg:col-span-3 neo-box bg-neo-surface flex flex-col overflow-hidden">
-          <div className="p-4 border-b-4 border-neo-border bg-neo-accent text-white font-black uppercase">
-            Ask Jan-Setu AI
-          </div>
-          <div className="p-4 flex-1 overflow-y-auto">
-            {/* Chat Placeholder */}
-            <div className="space-y-4">
-              <div className="neo-box p-3 bg-neo-bg text-sm">
-                How can I help optimize your constituency today?
-              </div>
-            </div>
-          </div>
-          <div className="p-4 border-t-4 border-neo-border">
-            <input 
-              type="text" 
-              placeholder="Type / to use commands..." 
-              className="w-full neo-box p-3 bg-neo-bg font-mono text-sm focus:outline-none"
-            />
-          </div>
+        <div className="lg:col-span-3 flex flex-col overflow-hidden">
+          <AskJanSetuPanel onSelectCitation={(id, type) => {
+            if (type === 'cluster' || type === 'optimization') {
+              setSelectedCluster(id);
+            }
+          }} />
         </div>
 
       </div>
