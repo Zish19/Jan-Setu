@@ -36,7 +36,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 shrink-0">
         <KpiCard title="Active Reports" value="1,248" subtitle="+12% this week" />
         <KpiCard title="Open Clusters" value="84" subtitle="Needs MP Review" />
-        <KpiCard title="Budget Utilized" value="₹2.4 Cr" subtitle="52% of MPLADS fund" />
+        <KpiCard title="Budget Utilized" value="2.4 Cr" subtitle="52% of MPLADS fund" />
         <KpiCard title="Trust Score" value="92%" subtitle="Community Confidence" />
       </div>
 
@@ -84,7 +84,7 @@ export default function DashboardPage() {
                         <span className="text-xs font-bold opacity-50">10m ago</span>
                       </div>
                       <div className="font-black mt-2">Severe Road Damage</div>
-                      <div className="text-sm mt-1 opacity-80">Ward 4 • 12 Reports</div>
+                      <div className="text-sm mt-1 opacity-80">Ward 4  12 Reports</div>
                     </div>
                   ))}
                 </div>

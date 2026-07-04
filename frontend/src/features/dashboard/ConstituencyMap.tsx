@@ -106,12 +106,12 @@ export default function ConstituencyMap({
               <div className="flex flex-col gap-2 p-1 min-w-[200px]">
                 <div className="font-black text-lg">{cluster.title}</div>
                 <div className="text-xs font-bold uppercase opacity-70 border-b-2 border-black pb-1">
-                  Status: {cluster.selected ? 'Selected ✅' : 'Rejected ❌'}
+                  Status: {cluster.selected ? 'Selected ' : 'Rejected '}
                 </div>
                 
                 {explanation ? (
                   <div className="text-sm mt-2 bg-yellow-100 p-2 border-2 border-black">
-                    <span className="font-bold block mb-1">🤖 Jan-Setu AI:</span>
+                    <span className="font-bold block mb-1"> Jan-Setu AI:</span>
                     {explanation}
                   </div>
                 ) : (

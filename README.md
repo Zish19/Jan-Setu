@@ -1,4 +1,4 @@
-# Jan-Setu 🌉
+# Jan-Setu 
 
 > **AI-native civic intelligence platform that helps governments prioritize what communities actually need.**
 
@@ -11,21 +11,21 @@ Jan-Setu is a civic-tech platform that transforms unstructured, multilingual, an
 
 ---
 
-## 🎯 Problem Statement
+##  Problem Statement
 
-Members of Parliament in India receive ₹5 Crores annually (MPLADS) for local area development. However, allocation decisions are often based on fragmented, unstructured citizen complaints (letters, emails, WhatsApp). MPs lack the data modeling required to prioritize projects that maximize civic impact while adhering to strict category budget caps.
+Members of Parliament in India receive 5 Crores annually (MPLADS) for local area development. However, allocation decisions are often based on fragmented, unstructured citizen complaints (letters, emails, WhatsApp). MPs lack the data modeling required to prioritize projects that maximize civic impact while adhering to strict category budget caps.
 
-## 💡 The Solution
+##  The Solution
 
 Jan-Setu replaces the traditional complaint inbox with an **Autonomous AI Pipeline**.
 
 1. **Ingest**: Citizens submit messy, multimodal reports (voice, images, text) in any language.
 2. **Process**: Google Gemini translates, categorizes, severity-scores, and extracts geo-locations.
 3. **Cluster**: Reports are embedded and clustered into "Verified Issues" (e.g., 50 pothole reports become 1 "Road Repair Project").
-4. **Optimize**: An OR-Tools CP-SAT solver allocates the ₹5 Cr budget across clustered projects to maximize total civic impact, constrained by sector caps (e.g., max 25% on Roads).
+4. **Optimize**: An OR-Tools CP-SAT solver allocates the 5 Cr budget across clustered projects to maximize total civic impact, constrained by sector caps (e.g., max 25% on Roads).
 5. **Explain**: A Gemini-powered RAG assistant ("Ask Jan-Setu") explains the solver's decisions and citations directly to the MP.
 
-## 🏗 Architecture & System Flow
+##  Architecture & System Flow
 
 ```mermaid
 graph TD
@@ -49,7 +49,7 @@ graph TD
 
 *(See the `docs/` folder for deeper architectural breakdowns).*
 
-## 🚀 Key Features
+##  Key Features
 
 * **Multimodal Intake**: Submit reports via voice or images.
 * **Budget Simulation Solver**: Adjust total MPLADS budget live and watch the CP-SAT solver instantly re-allocate funds.
@@ -57,7 +57,7 @@ graph TD
 * **"No-Popup" Spatial Dashboard**: A densely connected UI where map markers, the live feed, and AI citations stay completely synchronized.
 * **Public Trust Portal**: Closing the loop by displaying AI-audited project completion rates to the public.
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 * **Google Cloud**: Gemini 1.5 Flash (Vision/Text), Text Embeddings, Firestore.
 * **Backend**: Python, FastAPI, OR-Tools (CP-SAT), Pydantic.
@@ -65,7 +65,7 @@ graph TD
 
 ---
 
-## 💻 Running Locally
+##  Running Locally
 
 ### Prerequisites
 * Docker & Docker Compose
@@ -92,7 +92,7 @@ graph TD
 
 ---
 
-## 🎥 Presenter Demo Mode
+##  Presenter Demo Mode
 
 Jan-Setu includes a built-in automated **Presenter Mode** tailored for 2-minute hackathon judging. 
 
@@ -102,12 +102,12 @@ Jan-Setu includes a built-in automated **Presenter Mode** tailored for 2-minute 
 
 ---
 
-## 📚 Documentation
+##  Documentation
 Detailed documentation is available in the [`docs/`](./docs) directory:
 - [System Architecture](./docs/architecture.md)
 - [AI Pipeline Design](./docs/ai-pipeline.md)
 - [Optimization Model](./docs/optimizer.md)
 - [Deployment Guide](./docs/deployment.md)
 
-## 📄 License
+##  License
 MIT License.

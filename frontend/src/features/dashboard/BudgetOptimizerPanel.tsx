@@ -13,12 +13,12 @@ const MOCK_CATEGORIES = [
 ];
 
 const MOCK_RECOMMENDED = [
-  { id: '1', name: 'Ward 4 Road Repair', cost: '₹45L', priority: 95, explanation: 'High volume of severe road hazard reports in a concentrated 2km radius.' },
-  { id: '2', name: 'Sector 12 Clinic Supply', cost: '₹12L', priority: 88, explanation: 'Critical medicine shortage reported by 50+ residents.' },
+  { id: '1', name: 'Ward 4 Road Repair', cost: '45L', priority: 95, explanation: 'High volume of severe road hazard reports in a concentrated 2km radius.' },
+  { id: '2', name: 'Sector 12 Clinic Supply', cost: '12L', priority: 88, explanation: 'Critical medicine shortage reported by 50+ residents.' },
 ];
 
 const MOCK_REJECTED = [
-  { id: '3', name: 'Park Renovation', cost: '₹25L', priority: 40, reason: 'Category cap exceeded for non-essential infrastructure.' },
+  { id: '3', name: 'Park Renovation', cost: '25L', priority: 40, reason: 'Category cap exceeded for non-essential infrastructure.' },
 ];
 
 export default function BudgetOptimizerPanel({
@@ -28,14 +28,14 @@ export default function BudgetOptimizerPanel({
 }) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [hasResults, setHasResults] = useState(false);
-  const [budget, setBudget] = useState('₹5,00,00,000');
+  const [budget, setBudget] = useState('5,00,00,000');
   const [results, setResults] = useState<any>(null);
 
   const runOptimization = async () => {
     setIsOptimizing(true);
     setHasResults(false);
     
-    // Parse budget string roughly to number (e.g. ₹5,00,00,000 -> 50000000)
+    // Parse budget string roughly to number (e.g. 5,00,00,000 -> 50000000)
     const numericBudget = parseInt(budget.replace(/[^0-9]/g, ''), 10) || 50000000;
     
     try {
@@ -139,7 +139,7 @@ export default function BudgetOptimizerPanel({
                   >
                     <div className="flex justify-between font-bold">
                       <span>{proj.title || proj.name}</span>
-                      <span>{proj.cost || '₹45L'}</span>
+                      <span>{proj.cost || '45L'}</span>
                     </div>
                     <div className="text-xs mt-2 opacity-80">{proj.explanation || proj.reason || 'AI Priority Match'}</div>
                   </div>
@@ -159,7 +159,7 @@ export default function BudgetOptimizerPanel({
                   >
                     <div className="flex justify-between font-bold line-through decoration-neo-danger decoration-2">
                       <span>{proj.title || proj.name}</span>
-                      <span>{proj.cost || '₹25L'}</span>
+                      <span>{proj.cost || '25L'}</span>
                     </div>
                     <div className="text-xs mt-2 text-neo-danger font-bold">Reason: {proj.reason || 'Category cap exceeded.'}</div>
                   </div>

@@ -2,7 +2,7 @@
 
 Jan-Setu is a monorepo application structured around a FastAPI backend and a Next.js (React) frontend. It prioritizes autonomous AI pipelines, real-time optimization, and seamless UI synchronization.
 
-## 🏗 High-Level System Design
+##  High-Level System Design
 
 ```mermaid
 graph TD
@@ -32,7 +32,7 @@ graph TD
     A <-->|Axios Interceptors| D
 ```
 
-## 🧠 The AI Pipeline
+##  The AI Pipeline
 
 The pipeline processes chaotic incoming reports into structured intelligence.
 
@@ -53,17 +53,17 @@ sequenceDiagram
     DB-->>API: Created Project Cluster
 ```
 
-## ⚖️ Budget Optimization Flow
+##  Budget Optimization Flow
 
 When the MP sets a budget in the dashboard, the OR-Tools solver takes over.
 
 ```mermaid
 flowchart LR
-    A[MP Sets Budget e.g. ₹5Cr] --> B[Fetch Open Clusters]
+    A[MP Sets Budget e.g. 5Cr] --> B[Fetch Open Clusters]
     B --> C{CP-SAT Solver}
     
     subgraph Constraints
-    C -.-> D[Max ₹5Cr Total]
+    C -.-> D[Max 5Cr Total]
     C -.-> E[Max 30% per Category]
     C -.-> F[Maximize Total Severity Score]
     end
@@ -75,11 +75,11 @@ flowchart LR
     H --> I
 ```
 
-## 🌐 RAG Assistant (Ask Jan-Setu)
+##  RAG Assistant (Ask Jan-Setu)
 
 The RAG Assistant bridges the gap between the complex solver results and plain-english explainability.
 
 1. MP asks: "Why wasn't the park in Ward 5 funded?"
 2. FastAPI retrieves recent Optimization runs and the Ward 5 cluster details.
 3. Gemini processes the constraints context.
-4. Gemini responds: "Ward 5 Park (₹40L) was deferred because the Parks category reached its 15% budget cap. Funding it would violate the fairness constraint."
+4. Gemini responds: "Ward 5 Park (40L) was deferred because the Parks category reached its 15% budget cap. Funding it would violate the fairness constraint."

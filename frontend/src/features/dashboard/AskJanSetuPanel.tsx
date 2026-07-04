@@ -9,7 +9,7 @@ const MOCK_API_CALL = async (query: string) => {
   return new Promise<{text: string, citations: any[]}>((resolve) => {
     setTimeout(() => {
       resolve({
-        text: `Based on the latest optimization run, Ward 4 is the highest priority for intervention due to a severe concentration of reported road damage. \n\nIf the budget increased by ₹50L, we could also fund the pending healthcare requests in Sector 12.`,
+        text: `Based on the latest optimization run, Ward 4 is the highest priority for intervention due to a severe concentration of reported road damage. \n\nIf the budget increased by 50L, we could also fund the pending healthcare requests in Sector 12.`,
         citations: [
           { id: '1', type: 'cluster', title: 'Ward 4 Road Damage' },
           { id: 'OPT-04', type: 'optimization', title: 'Budget Run #04' }

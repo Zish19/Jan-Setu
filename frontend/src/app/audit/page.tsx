@@ -28,7 +28,7 @@ export default function AuditInterface() {
         <h2 className="text-2xl font-black mb-4">Pending Verification: Ward 4 Road Resurfacing</h2>
         <div className="grid grid-cols-2 gap-4 mb-6 text-sm font-mono">
           <div className="p-3 bg-neo-bg border-2 border-neo-border"><strong>Project ID:</strong> PRJ-409</div>
-          <div className="p-3 bg-neo-bg border-2 border-neo-border"><strong>Allocated Budget:</strong> ₹45,00,000</div>
+          <div className="p-3 bg-neo-bg border-2 border-neo-border"><strong>Allocated Budget:</strong> 45,00,000</div>
           <div className="p-3 bg-neo-bg border-2 border-neo-border"><strong>Contractor:</strong> AB Buildco</div>
           <div className="p-3 bg-neo-bg border-2 border-neo-border text-neo-danger font-bold"><strong>Expected Completion:</strong> Overdue by 4 days</div>
         </div>
@@ -53,7 +53,7 @@ export default function AuditInterface() {
             animate={{ scale: 1, opacity: 1 }}
             className="p-6 bg-neo-success text-white neo-box flex flex-col items-center justify-center text-center gap-2"
           >
-            <div className="text-4xl">✅</div>
+            <div className="text-4xl"></div>
             <h3 className="text-2xl font-black uppercase">Verification Successful</h3>
             <p className="font-bold">Project marked as COMPLETED. Public trust score adjusted (+2%).</p>
           </motion.div>

@@ -38,7 +38,7 @@ export default function TrustPortal() {
           <div className="font-bold uppercase mt-2 opacity-80">Completion Rate</div>
         </div>
         <div className="neo-box bg-neo-surface p-6 flex flex-col items-center justify-center">
-          <div className="text-6xl font-black">₹4.2 Cr</div>
+          <div className="text-6xl font-black">4.2 Cr</div>
           <div className="font-bold uppercase mt-2 opacity-80">Budget Verified</div>
         </div>
       </div>

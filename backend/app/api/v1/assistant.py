@@ -42,7 +42,7 @@ async def query_assistant(request: AssistantRequest):
         prompt_context = "Ward 4 has the highest concentration of severe road damage (Priority 95)."
     elif "budget" in request.query.lower():
         citations.append(Citation(id="OPT-04", type="optimization", title="Budget Run #04"))
-        prompt_context = "The total budget utilized is ₹2.4 Cr, mostly allocated to Roads and Healthcare."
+        prompt_context = "The total budget utilized is 2.4 Cr, mostly allocated to Roads and Healthcare."
     else:
         citations.append(Citation(id="CL-ALL", type="analytics", title="Constituency Analytics"))
         prompt_context = "General constituency health is good, with 84 open clusters remaining."
