@@ -2,13 +2,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from google import genai
-import os
+from ..config.settings import settings
 import asyncio
 
 router = APIRouter()
 
-# Normally we would retrieve this from the shared config, but keeping it simple for the MVP endpoint
-gemini_api_key = os.environ.get("GEMINI_API_KEY")
+# Configure Gemini securely via centralized settings
+gemini_api_key = settings.GEMINI_API_KEY
 client = genai.Client(api_key=gemini_api_key) if gemini_api_key else None
 
 class Citation(BaseModel):
