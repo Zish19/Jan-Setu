@@ -47,14 +47,14 @@ export default function AskJanSetuPanel({
     setIsTyping(true);
 
     try {
-      // Calling our mock API (would use apiClient.post('/assistant/query') in prod)
-      const res = await MOCK_API_CALL(userMsg.content);
+      const { assistantService } = await import('@/services/assistant.service');
+      const res = await assistantService.query(userMsg.content);
       
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: res.text,
-        citations: res.citations
+        content: res.answer,
+        citations: res.citations.map((c, i) => ({ id: `cit-${i}`, type: 'citation', title: c }))
       };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {

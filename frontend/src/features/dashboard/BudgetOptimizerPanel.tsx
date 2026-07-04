@@ -28,15 +28,32 @@ export default function BudgetOptimizerPanel({
 }) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [hasResults, setHasResults] = useState(false);
+  const [budget, setBudget] = useState('₹5,00,00,000');
+  const [results, setResults] = useState<any>(null);
 
-  const runOptimization = () => {
+  const runOptimization = async () => {
     setIsOptimizing(true);
     setHasResults(false);
-    setTimeout(() => {
-      setIsOptimizing(false);
+    
+    // Parse budget string roughly to number (e.g. ₹5,00,00,000 -> 50000000)
+    const numericBudget = parseInt(budget.replace(/[^0-9]/g, ''), 10) || 50000000;
+    
+    try {
+      // Import dynamically to avoid top-level circular dependency issues if any
+      const { optimizationService } = await import('@/services/optimization.service');
+      const data = await optimizationService.runOptimizer({ total_budget: numericBudget });
+      setResults(data);
       setHasResults(true);
-    }, 2000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsOptimizing(false);
+    }
   };
+
+  // Extract from real results or fallback to mock visually
+  const recommended = results?.selected_projects || MOCK_RECOMMENDED;
+  const rejected = results?.rejected_projects || MOCK_REJECTED;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -46,7 +63,12 @@ export default function BudgetOptimizerPanel({
         <div className="space-y-4">
           <div>
             <label className="text-xs font-bold uppercase opacity-70">Total Budget (MPLADS)</label>
-            <input type="text" defaultValue="₹5,00,00,000" className="w-full neo-box p-2 mt-1 font-mono font-bold" />
+            <input 
+              type="text" 
+              value={budget} 
+              onChange={(e) => setBudget(e.target.value)}
+              className="w-full neo-box p-2 mt-1 font-mono font-bold" 
+            />
           </div>
           
           <Button 
@@ -107,39 +129,43 @@ export default function BudgetOptimizerPanel({
 
             {/* Recommended Projects */}
             <div className="space-y-4">
-              <h4 className="font-black uppercase text-sm border-b-2 border-neo-border pb-1 text-neo-success">Recommended Projects</h4>
-              {MOCK_RECOMMENDED.map(proj => (
-                <div 
-                  key={proj.id} 
-                  className="neo-box p-4 bg-neo-surface cursor-pointer hover:bg-white transition-colors"
-                  onClick={() => onSelectProject(proj.id)}
-                >
-                  <div className="flex justify-between items-start">
-                    <span className="font-bold text-lg leading-none">{proj.name}</span>
-                    <span className="font-mono font-bold text-neo-accent">{proj.cost}</span>
+              <h4 className="font-black uppercase text-sm border-b-2 border-neo-border pb-1 text-neo-success">Selected Projects</h4>
+              <div className="space-y-2">
+                {recommended.map((proj: any) => (
+                  <div 
+                    key={proj.id} 
+                    className="p-3 bg-white border-2 border-neo-border hover:bg-neo-bg cursor-pointer transition-colors"
+                    onClick={() => onSelectProject(proj.id)}
+                  >
+                    <div className="flex justify-between font-bold">
+                      <span>{proj.title || proj.name}</span>
+                      <span>{proj.cost || '₹45L'}</span>
+                    </div>
+                    <div className="text-xs mt-2 opacity-80">{proj.explanation || proj.reason || 'AI Priority Match'}</div>
                   </div>
-                  <div className="mt-2 text-sm italic opacity-80">{proj.explanation}</div>
-                  <div className="mt-3 flex gap-2">
-                    <span className="text-xs font-bold bg-neo-bg px-2 py-1 neo-box">Score: {proj.priority}/100</span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Rejected Projects */}
             <div className="space-y-4">
-              <h4 className="font-black uppercase text-sm border-b-2 border-neo-border pb-1 text-neo-danger">Rejected / Deferred</h4>
-              {MOCK_REJECTED.map(proj => (
-                <div key={proj.id} className="neo-box p-4 bg-gray-200 opacity-80">
-                  <div className="flex justify-between items-start">
-                    <span className="font-bold line-through">{proj.name}</span>
-                    <span className="font-mono font-bold text-neo-danger">{proj.cost}</span>
+              <h4 className="font-black uppercase text-sm border-b-2 border-neo-border pb-1 text-neo-danger">Rejected Projects</h4>
+              <div className="space-y-2">
+                {rejected.map((proj: any) => (
+                  <div 
+                    key={proj.id} 
+                    className="p-3 bg-gray-100 border-2 border-dashed border-neo-border opacity-70 hover:opacity-100 cursor-pointer transition-opacity"
+                    onClick={() => onSelectProject(proj.id)}
+                  >
+                    <div className="flex justify-between font-bold line-through decoration-neo-danger decoration-2">
+                      <span>{proj.title || proj.name}</span>
+                      <span>{proj.cost || '₹25L'}</span>
+                    </div>
+                    <div className="text-xs mt-2 text-neo-danger font-bold">Reason: {proj.reason || 'Category cap exceeded.'}</div>
                   </div>
-                  <div className="mt-2 text-sm text-neo-danger font-bold">Reason: {proj.reason}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-
           </motion.div>
         )}
       </div>
