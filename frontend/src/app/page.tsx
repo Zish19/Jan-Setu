@@ -1,65 +1,98 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Button } from '@/components/ui/Button';
+
+gsap.registerPlugin(ScrollTrigger);
+
+export default function LandingPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const heroTextRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Background video slow zoom effect on scroll
+      gsap.to(videoRef.current, {
+        scale: 1.1,
+        ease: "none",
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        }
+      });
+
+      // Hero text fade out on scroll
+      gsap.to(heroTextRef.current, {
+        y: 100,
+        opacity: 0,
+        ease: "none",
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        }
+      });
+    }, containerRef);
+    
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main ref={containerRef} className="relative min-h-[200vh] bg-neo-bg">
+      {/* Background Video */}
+      <div className="fixed inset-0 w-full h-full z-0 overflow-hidden bg-neo-border">
+        {/* Placeholder video element */}
+        <video 
+          ref={videoRef}
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          className="object-cover w-full h-full opacity-60"
+        >
+          {/* <source src="/videos/hero-bg.mp4" type="video/mp4" /> */}
+        </video>
+        <div className="absolute inset-0 bg-neo-border/40 mix-blend-multiply" />
+      </div>
+
+      {/* Hero Content */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
+        <div ref={heroTextRef} className="text-center max-w-4xl mx-auto space-y-8">
+          <h1 className="text-7xl md:text-9xl font-black tracking-tighter text-neo-surface drop-shadow-md">
+            Jan-Setu
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-2xl md:text-4xl font-medium text-neo-surface/90 max-w-2xl mx-auto leading-tight">
+            AI that helps governments decide what communities actually need.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-12">
+            <Button size="lg" className="w-full sm:w-auto text-xl">
+              Report an Issue
+            </Button>
+            <Button variant="secondary" size="lg" className="w-full sm:w-auto text-xl bg-transparent text-neo-surface border-neo-surface hover:bg-neo-surface hover:text-neo-text">
+              Explore Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Scrollable Content below fold */}
+      <div className="relative z-10 min-h-screen bg-neo-bg border-t-4 border-neo-border p-8 md:p-24">
+        <div className="max-w-6xl mx-auto neo-box p-12 bg-neo-surface">
+          <h2 className="text-4xl md:text-6xl font-bold mb-8">How Jan-Setu Works</h2>
+          <p className="text-xl max-w-3xl leading-relaxed">
+            Citizens report issues in any language, via voice, text, or image. Our AI pipeline instantly translates, 
+            categorizes, geo-verifies, and clusters duplicate complaints. The engine then assigns an explainable priority 
+            score and computes optimal budget allocations for Members of Parliament.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
