@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from ..repositories.domain import ClusterRepository, SignalRepository
+from app.repositories.domain import ClusterRepository, SignalRepository
 
 router = APIRouter()
 cluster_repo = ClusterRepository()

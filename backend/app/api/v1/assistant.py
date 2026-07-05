@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from google import genai
-from ..config.settings import settings
+from app.config.settings import settings
 import asyncio
 
 router = APIRouter()
