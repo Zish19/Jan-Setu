@@ -29,6 +29,7 @@ if (typeof window !== 'undefined') {
 export default function CitizenFlow() {
   const [step, setStep] = useState<Step>('TYPE');
   const [report, setReport] = useState({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' });
+  const [resultData, setResultData] = useState<any>(null);
   
   const { isDemoMode, simulateIncomingReport } = useDemoStore();
   const { startPipeline, isActive, events, updateEvent } = usePipelineStore();
@@ -86,6 +87,8 @@ export default function CitizenFlow() {
           const base64String = (reader.result as string).split(',')[1];
           setReport(r => ({ ...r, audioBase64: base64String }));
         };
+        // Ensure stream tracks are fully stopped
+        stream.getTracks().forEach(track => track.stop());
       };
       
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -173,6 +176,9 @@ export default function CitizenFlow() {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
     };
   }, []);
 
@@ -180,9 +186,18 @@ export default function CitizenFlow() {
     if (isDemoMode) {
       simulateIncomingReport();
     }
-    startPipeline();
     nextStep('PROCESSING');
+    startPipeline();
     
+    // Simulate UI processing animation quickly while backend processes
+    let delay = 300;
+    events.forEach((event) => {
+      setTimeout(() => {
+        updateEvent(event.id, { status: 'completed', timestamp: Date.now() });
+      }, delay);
+      delay += 300;
+    });
+
     try {
       const payload = {
         text: report.text || report.type,
@@ -192,17 +207,20 @@ export default function CitizenFlow() {
         audio_base64: report.audioBase64 || undefined,
       };
       
-      await SignalService.createSignal(payload);
+      const response = await SignalService.createSignal(payload);
       
-      let delay = 1000;
-      events.forEach((event, i) => {
-        setTimeout(() => {
-          updateEvent(event.id, { status: 'completed', timestamp: Date.now() });
-          if (i === events.length - 1) nextStep('SUCCESS');
-        }, delay);
-        delay += 800 + Math.random() * 500;
+      if (response && response.success) {
+        setResultData(response.data);
+      } else {
+        console.error("API returned success false:", response);
+      }
+      
+      // Ensure all are completed
+      events.forEach((event) => {
+        updateEvent(event.id, { status: 'completed', timestamp: Date.now() });
       });
 
+      nextStep('SUCCESS');
     } catch (err) {
       console.error("Submission failed", err);
       nextStep('SUCCESS'); 
@@ -350,6 +368,14 @@ export default function CitizenFlow() {
               )}
             </div>
             
+            {!isLocating && (
+              <div className="mt-4 text-center">
+                <div className="font-mono font-bold bg-white border-2 border-black px-4 py-2 inline-block shadow-[4px_4px_0px_rgba(0,0,0,1)] transform -rotate-1">
+                  Latitude: {report.location.lat.toFixed(6)} | Longitude: {report.location.lng.toFixed(6)}
+                </div>
+              </div>
+            )}
+            
             <div className="flex justify-between">
               <Button variant="secondary" onClick={() => nextStep('MEDIA')}>Back</Button>
               <Button variant="primary" onClick={() => nextStep('REVIEW')} disabled={isLocating}>Confirm Location</Button>
@@ -388,16 +414,32 @@ export default function CitizenFlow() {
               <CheckCircle2 size={48} className="text-white" />
             </div>
             <h2 className="text-4xl font-black">Verified & Scored</h2>
-            <div className="neo-box p-6 bg-neo-bg text-left space-y-4">
-              <h3 className="text-xl font-bold border-b-2 border-neo-border pb-2">AI Explainability</h3>
-              <p><strong>Priority Score:</strong> 85/100 (HIGH)</p>
-              <p><strong>Category:</strong> Roads - Severe Pothole</p>
-              <p><strong>Matched Cluster:</strong> Grouped with 12 other complaints in this ward.</p>
-              <p className="text-sm text-neo-text/70 italic mt-4">
-                "High volume of severe road hazard reports in a concentrated 2km radius."
-              </p>
-            </div>
-            <Button onClick={() => { setReport({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' }); nextStep('TYPE'); }} className="w-full">Report Another</Button>
+            
+            {resultData && resultData.cluster ? (
+              <div className="neo-box p-6 bg-neo-bg text-left space-y-4 shadow-[6px_6px_0px_rgba(0,0,0,1)] border-4 border-black">
+                <h3 className="text-xl font-bold border-b-4 border-black pb-2 mb-4 uppercase tracking-widest text-neo-accent">AI Explainability</h3>
+                <p><strong>Priority Score:</strong> <span className="text-2xl font-black">{resultData.cluster.priority_score.toFixed(0)}/100</span></p>
+                <p><strong>Category:</strong> <span className="uppercase font-bold text-lg bg-yellow-100 px-2 py-1 border-2 border-black inline-block">{resultData.cluster.category}</span></p>
+                <p><strong>Matched Cluster:</strong> Grouped with <span className="font-bold underline">{resultData.cluster.signals_count - 1}</span> other complaints in this ward.</p>
+                <div className="text-sm font-bold bg-white p-4 border-2 border-black italic mt-4 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+                  <span className="block text-xs uppercase opacity-60 not-italic mb-1 border-b-2 border-black pb-1 w-max">AI Rationale</span>
+                  "{resultData.cluster.explanation || "Issue registered and verified by AI. Prioritized for immediate attention."}"
+                </div>
+              </div>
+            ) : (
+              <div className="neo-box p-6 bg-neo-bg text-left space-y-4">
+                <p className="font-bold text-red-500 bg-red-100 p-2 border-2 border-black">Fallback Result shown (Backend AI could not be reached).</p>
+                <h3 className="text-xl font-bold border-b-2 border-neo-border pb-2">AI Explainability</h3>
+                <p><strong>Priority Score:</strong> 85/100 (HIGH)</p>
+                <p><strong>Category:</strong> Roads - Severe Pothole</p>
+                <p><strong>Matched Cluster:</strong> Grouped with 12 other complaints in this ward.</p>
+                <p className="text-sm text-neo-text/70 italic mt-4">
+                  "High volume of severe road hazard reports in a concentrated 2km radius."
+                </p>
+              </div>
+            )}
+
+            <Button onClick={() => { setReport({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' }); setResultData(null); nextStep('TYPE'); }} className="w-full mt-8 shadow-[6px_6px_0px_rgba(0,0,0,1)] font-bold text-xl h-14 border-4 border-black">Report Another Issue</Button>
           </motion.div>
         )}
 
