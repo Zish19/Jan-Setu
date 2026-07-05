@@ -3,29 +3,69 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
-import { Mic, Camera, MapPin, Send, CheckCircle2, Square, StopCircle } from 'lucide-react';
+import { Mic, Camera, MapPin, Send, CheckCircle2, StopCircle, RefreshCw } from 'lucide-react';
 import { useDemoStore } from '@/store/demo.store';
 import { usePipelineStore } from '@/store/pipeline.store';
 import { SignalService } from '@/services/signal.service';
+import dynamic from 'next/dynamic';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(m => m.Marker), { ssr: false });
 
 type Step = 'TYPE' | 'MEDIA' | 'LOCATION' | 'REVIEW' | 'PROCESSING' | 'SUCCESS';
 
+if (typeof window !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
+}
+
 export default function CitizenFlow() {
   const [step, setStep] = useState<Step>('TYPE');
-  const [report, setReport] = useState({ type: '', text: 'Need fixing.', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' });
+  const [report, setReport] = useState({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' });
   
   const { isDemoMode, simulateIncomingReport } = useDemoStore();
   const { startPipeline, isActive, events, updateEvent } = usePipelineStore();
 
   const [isRecording, setIsRecording] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  
+  const [isLocating, setIsLocating] = useState(true);
 
-  const nextStep = (s: Step) => setStep(s);
+  const nextStep = (s: Step) => {
+    if (s === 'LOCATION') {
+      setIsLocating(true);
+      if (typeof window !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setReport(r => ({ ...r, location: { lat: pos.coords.latitude, lng: pos.coords.longitude } }));
+            setIsLocating(false);
+          },
+          (err) => {
+            console.error(err);
+            setIsLocating(false); // fallback to default
+          },
+          { timeout: 10000, enableHighAccuracy: true }
+        );
+      } else {
+        setIsLocating(false);
+      }
+    }
+    setStep(s);
+  };
 
   const startRecording = async () => {
     try {
@@ -48,8 +88,27 @@ export default function CitizenFlow() {
         };
       };
       
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        
+        recognition.onresult = (event: any) => {
+          let currentTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            currentTranscript += event.results[i][0].transcript;
+          }
+          setLiveTranscript(currentTranscript);
+        };
+        
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
+      
       mediaRecorder.start();
       setIsRecording(true);
+      setLiveTranscript('');
     } catch (err) {
       console.error("Audio recording failed", err);
     }
@@ -60,16 +119,25 @@ export default function CitizenFlow() {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    if (liveTranscript) {
+      setReport(r => ({ ...r, text: r.text ? `${r.text}\n${liveTranscript}` : liveTranscript }));
+    }
   };
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setCameraActive(true);
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setReport(r => ({ ...r, imageBase64: '' }));
+      setCameraActive(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 100);
     } catch (err) {
       console.error("Camera access failed", err);
     }
@@ -86,7 +154,6 @@ export default function CitizenFlow() {
         const base64String = dataUrl.split(',')[1];
         setReport(r => ({ ...r, imageBase64: base64String }));
         
-        // Stop stream
         const stream = videoRef.current.srcObject as MediaStream;
         stream?.getTracks().forEach(track => track.stop());
         setCameraActive(false);
@@ -94,11 +161,17 @@ export default function CitizenFlow() {
     }
   };
 
-  // cleanup on unmount
+  const retakePhoto = () => {
+    startCamera();
+  };
+
   useEffect(() => {
     return () => {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
     };
   }, []);
@@ -181,20 +254,43 @@ export default function CitizenFlow() {
             <h2 className="text-3xl font-black">Describe the issue</h2>
             
             <div className="flex flex-col gap-4">
-              {cameraActive ? (
-                <div className="relative mx-auto rounded overflow-hidden">
-                  <video ref={videoRef} className="w-full max-w-md bg-black" />
-                  <Button variant="primary" className="absolute bottom-4 left-1/2 -translate-x-1/2" onClick={takePhoto}>Capture</Button>
+              {cameraActive && (
+                <div className="relative mx-auto rounded overflow-hidden border-4 border-black">
+                  <video ref={videoRef} className="w-full max-w-md bg-black" playsInline muted autoPlay />
+                  <Button variant="primary" className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-[4px_4px_0px_rgba(0,0,0,1)]" onClick={takePhoto}>Capture</Button>
                 </div>
-              ) : report.imageBase64 ? (
-                <div className="text-neo-accent font-bold">Photo Captured!</div>
-              ) : null}
+              )}
+              
+              {!cameraActive && report.imageBase64 && (
+                <div className="relative mx-auto rounded overflow-hidden border-4 border-black group">
+                  <img src={`data:image/jpeg;base64,${report.imageBase64}`} className="w-full max-w-md" alt="Captured" />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <Button variant="primary" onClick={retakePhoto} className="flex gap-2">
+                      <RefreshCw size={20} /> Retake Photo
+                    </Button>
+                  </div>
+                </div>
+              )}
               
               <canvas ref={canvasRef} className="hidden" />
               
-              {report.audioBase64 ? (
-                <div className="text-neo-accent font-bold">Audio Recorded!</div>
-              ) : null}
+              {isRecording && (
+                <div className="p-4 border-4 border-black bg-yellow-100 text-left">
+                  <div className="flex items-center gap-2 font-bold mb-2 text-neo-danger animate-pulse">
+                    <Mic size={20} /> Recording...
+                  </div>
+                  <p className="italic">{liveTranscript || "Listening..."}</p>
+                </div>
+              )}
+
+              {!isRecording && report.audioBase64 && (
+                <div className="p-4 border-4 border-black bg-green-100 text-left">
+                  <div className="flex items-center gap-2 font-bold mb-2 text-green-700">
+                    <CheckCircle2 size={20} /> Audio Recorded
+                  </div>
+                  <p className="italic line-clamp-3">{report.text || "Audio attached"}</p>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-center gap-8">
@@ -206,16 +302,18 @@ export default function CitizenFlow() {
               ) : (
                 <button onClick={stopRecording} className="flex flex-col items-center gap-4 p-8 neo-box bg-neo-danger text-white animate-pulse">
                   <StopCircle size={48} />
-                  <span className="font-bold">Stop</span>
+                  <span className="font-bold">Stop Recording</span>
                 </button>
               )}
 
-              <button onClick={startCamera} className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
-                <Camera size={48} className="text-neo-accent" />
-                <span className="font-bold">Take Photo</span>
-              </button>
+              {!cameraActive && !report.imageBase64 && (
+                <button onClick={startCamera} className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
+                  <Camera size={48} className="text-neo-accent" />
+                  <span className="font-bold">Take Photo</span>
+                </button>
+              )}
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between mt-8">
               <Button variant="secondary" onClick={() => nextStep('TYPE')}>Back</Button>
               <Button variant="primary" onClick={() => nextStep('LOCATION')}>Next</Button>
             </div>
@@ -224,13 +322,33 @@ export default function CitizenFlow() {
 
         {step === 'LOCATION' && (
           <motion.div key="location" className="space-y-8 text-center">
-            <h2 className="text-3xl font-black">Locating...</h2>
-            <div className="h-48 neo-box flex items-center justify-center bg-neo-bg">
-              <MapPin size={48} className="animate-bounce text-neo-danger" />
+            <h2 className="text-3xl font-black">Confirm Location</h2>
+            
+            <div className="h-64 neo-box relative bg-neo-bg overflow-hidden flex items-center justify-center">
+              {isLocating ? (
+                <div className="flex flex-col items-center gap-4">
+                  <MapPin size={48} className="animate-bounce text-neo-danger" />
+                  <span className="font-bold">Locating GPS...</span>
+                </div>
+              ) : (
+                <MapContainer 
+                  center={[report.location.lat, report.location.lng]} 
+                  zoom={16} 
+                  style={{ width: '100%', height: '100%' }}
+                  zoomControl={false}
+                >
+                  <TileLayer
+                    attribution='&copy; OpenStreetMap'
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  />
+                  <Marker position={[report.location.lat, report.location.lng]} />
+                </MapContainer>
+              )}
             </div>
+            
             <div className="flex justify-between">
               <Button variant="secondary" onClick={() => nextStep('MEDIA')}>Back</Button>
-              <Button variant="primary" onClick={() => nextStep('REVIEW')}>Confirm Location</Button>
+              <Button variant="primary" onClick={() => nextStep('REVIEW')} disabled={isLocating}>Confirm Location</Button>
             </div>
           </motion.div>
         )}
@@ -275,7 +393,7 @@ export default function CitizenFlow() {
                 "High volume of severe road hazard reports in a concentrated 2km radius."
               </p>
             </div>
-            <Button onClick={() => { setReport({ type: '', text: 'Need fixing.', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' }); nextStep('TYPE'); }} className="w-full">Report Another</Button>
+            <Button onClick={() => { setReport({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' }); nextStep('TYPE'); }} className="w-full">Report Another</Button>
           </motion.div>
         )}
 
