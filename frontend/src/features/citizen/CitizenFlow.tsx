@@ -275,20 +275,24 @@ export default function CitizenFlow() {
               <canvas ref={canvasRef} className="hidden" />
               
               {isRecording && (
-                <div className="p-4 border-4 border-black bg-yellow-100 text-left">
-                  <div className="flex items-center gap-2 font-bold mb-2 text-neo-danger animate-pulse">
-                    <Mic size={20} /> Recording...
+                <div className="p-6 border-4 border-black bg-cyan-400 text-black text-left shadow-[6px_6px_0px_rgba(0,0,0,1)] transform scale-105 transition-transform duration-300">
+                  <div className="flex items-center gap-2 font-black mb-3 text-black text-xl animate-pulse">
+                    <Mic size={24} className="animate-bounce" /> LIVE TRANSCRIPTION
                   </div>
-                  <p className="italic">{liveTranscript || "Listening..."}</p>
+                  <p className="italic font-bold text-2xl leading-relaxed">
+                    {liveTranscript || "Speak now... AI is listening to your voice!"}
+                  </p>
                 </div>
               )}
 
               {!isRecording && report.audioBase64 && (
-                <div className="p-4 border-4 border-black bg-green-100 text-left">
-                  <div className="flex items-center gap-2 font-bold mb-2 text-green-700">
-                    <CheckCircle2 size={20} /> Audio Recorded
+                <div className="p-6 border-4 border-black bg-lime-400 text-black text-left shadow-[6px_6px_0px_rgba(0,0,0,1)] transform scale-105 transition-transform duration-300">
+                  <div className="flex items-center gap-2 font-black mb-3 text-black text-xl">
+                    <CheckCircle2 size={24} /> AUDIO CAPTURED
                   </div>
-                  <p className="italic line-clamp-3">{report.text || "Audio attached"}</p>
+                  <p className="italic font-bold text-xl line-clamp-3">
+                    {report.text || "Your voice has been recorded securely."}
+                  </p>
                 </div>
               )}
             </div>
