@@ -49,3 +49,5 @@ apiClient.interceptors.response.use(
     return Promise.reject(standardError);
   }
 );
+
+export default apiClient;
