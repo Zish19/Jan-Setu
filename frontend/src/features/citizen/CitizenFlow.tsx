@@ -213,6 +213,7 @@ export default function CitizenFlow() {
         setResultData(response.data);
       } else {
         console.error("API returned success false:", response);
+        setResultData({ error: response.data?.error || response.message || "Unknown Server Error" });
       }
       
       // Ensure all are completed
@@ -309,7 +310,7 @@ export default function CitizenFlow() {
                     <CheckCircle2 size={24} /> AUDIO CAPTURED
                   </div>
                   <p className="italic font-bold text-xl line-clamp-3">
-                    {report.text || "Your voice has been recorded securely."}
+                    {report.text || "No live speech detected by browser. The backend AI will extract the transcript directly from the audio file upon submission."}
                   </p>
                 </div>
               )}
@@ -370,8 +371,8 @@ export default function CitizenFlow() {
             
             {!isLocating && (
               <div className="mt-4 text-center">
-                <div className="font-mono font-bold bg-white border-2 border-black px-4 py-2 inline-block shadow-[4px_4px_0px_rgba(0,0,0,1)] transform -rotate-1">
-                  Latitude: {report.location.lat.toFixed(6)} | Longitude: {report.location.lng.toFixed(6)}
+                <div className="font-mono font-black bg-yellow-300 text-black border-4 border-black px-6 py-3 inline-block shadow-[6px_6px_0px_rgba(0,0,0,1)] transform -rotate-1 text-lg">
+                  LATITUDE: {report.location.lat.toFixed(6)} | LONGITUDE: {report.location.lng.toFixed(6)}
                 </div>
               </div>
             )}
@@ -428,7 +429,10 @@ export default function CitizenFlow() {
               </div>
             ) : (
               <div className="neo-box p-6 bg-neo-bg text-left space-y-4">
-                <p className="font-bold text-red-500 bg-red-100 p-2 border-2 border-black">Fallback Result shown (Backend AI could not be reached).</p>
+                <p className="font-bold text-red-500 bg-red-100 p-4 border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] uppercase text-lg">
+                  API Error: {resultData?.error || "Could not reach the backend AI."}
+                </p>
+                <p className="font-bold bg-white p-2 border-2 border-black mb-4">Fallback Result generated locally:</p>
                 <h3 className="text-xl font-bold border-b-2 border-neo-border pb-2">AI Explainability</h3>
                 <p><strong>Priority Score:</strong> 85/100 (HIGH)</p>
                 <p><strong>Category:</strong> Roads - Severe Pothole</p>

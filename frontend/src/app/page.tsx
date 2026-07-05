@@ -85,7 +85,12 @@ export default function LandingPage() {
             >
               Report an Issue
             </Button>
-            <Button variant="secondary" size="lg" className="w-full sm:w-auto text-xl bg-transparent text-neo-surface border-neo-surface hover:bg-neo-surface hover:text-neo-text">
+            <Button 
+              variant="secondary" 
+              size="lg" 
+              className="w-full sm:w-auto text-xl bg-transparent text-neo-surface border-neo-surface hover:bg-neo-surface hover:text-neo-text"
+              onClick={() => window.location.href = '/dashboard'}
+            >
               Explore Dashboard
             </Button>
           </div>
