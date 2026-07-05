@@ -10,6 +10,8 @@ import { SignalService } from '@/services/signal.service';
 import dynamic from 'next/dynamic';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'regenerator-runtime/runtime';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false });
@@ -35,10 +37,10 @@ export default function CitizenFlow() {
   const { startPipeline, isActive, events, updateEvent } = usePipelineStore();
 
   const [isRecording, setIsRecording] = useState(false);
-  const [liveTranscript, setLiveTranscript] = useState('');
+  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const recognitionRef = useRef<any>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,6 +72,11 @@ export default function CitizenFlow() {
 
   const startRecording = async () => {
     try {
+      resetTranscript();
+      if (browserSupportsSpeechRecognition) {
+        SpeechRecognition.startListening({ continuous: true, language: 'en-IN' });
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -91,27 +98,8 @@ export default function CitizenFlow() {
         stream.getTracks().forEach(track => track.stop());
       };
       
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        
-        recognition.onresult = (event: any) => {
-          let currentTranscript = '';
-          for (let i = 0; i < event.results.length; i++) {
-            currentTranscript += event.results[i][0].transcript;
-          }
-          setLiveTranscript(currentTranscript);
-        };
-        
-        recognition.start();
-        recognitionRef.current = recognition;
-      }
-      
       mediaRecorder.start();
       setIsRecording(true);
-      setLiveTranscript('');
     } catch (err) {
       console.error("Audio recording failed", err);
     }
@@ -122,11 +110,9 @@ export default function CitizenFlow() {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    if (liveTranscript) {
-      setReport(r => ({ ...r, text: r.text ? `${r.text}\n${liveTranscript}` : liveTranscript }));
+    SpeechRecognition.stopListening();
+    if (transcript) {
+      setReport(r => ({ ...r, text: r.text ? `${r.text}\n${transcript}` : transcript }));
     }
   };
 
@@ -173,9 +159,7 @@ export default function CitizenFlow() {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
       }
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      SpeechRecognition.stopListening();
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         mediaRecorderRef.current.stop();
       }
@@ -299,7 +283,7 @@ export default function CitizenFlow() {
                     <Mic size={24} className="animate-bounce" /> LIVE TRANSCRIPTION
                   </div>
                   <p className="italic font-bold text-2xl leading-relaxed">
-                    {liveTranscript || "Speak now... AI is listening to your voice!"}
+                    {transcript || (!browserSupportsSpeechRecognition ? "Browser does not support live captions, but audio is being securely recorded..." : "Speak now... AI is listening to your voice!")}
                   </p>
                 </div>
               )}
