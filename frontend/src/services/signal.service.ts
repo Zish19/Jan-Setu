@@ -6,6 +6,7 @@ export interface CreateSignalPayload {
   lat: number;
   lng: number;
   image_base64?: string;
+  audio_base64?: string;
 }
 
 export interface Signal {

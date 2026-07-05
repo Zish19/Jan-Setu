@@ -4,8 +4,16 @@ import { ApiResponse } from './types';
 // In a real implementation, we'd import Firebase Auth to get the token:
 // import { auth } from '@/lib/firebase/config';
 
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return '/api/backend/api/v1'; // Vercel rewrite route
+  }
+  return 'http://localhost:8000/api/v1';
+};
+
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  baseURL: getBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

@@ -44,11 +44,24 @@ class SignalProcessingOrchestrator:
         self.signal_repo = signal_repo
         self.cluster_repo = cluster_repo
 
-    async def _gather_initial_ai_tasks(self, text: str, image_data: Optional[bytes] = None) -> tuple:
+    async def _gather_initial_ai_tasks(self, text: str, image_data: Optional[bytes] = None, audio_data: Optional[bytes] = None) -> tuple:
         """Runs independent tasks concurrently to minimize latency."""
+        
+        audio_transcript = ""
+        if audio_data:
+            from ..core.gemini import gemini_client
+            try:
+                audio_transcript = await asyncio.to_thread(gemini_client.analyze_audio, audio_data)
+            except Exception as e:
+                logger.error("Audio parsing failed", extra={"error": str(e)})
+        
+        combined_text = text
+        if audio_transcript:
+            combined_text = f"{text}\nAudio Transcript: {audio_transcript}".strip()
+
         tasks = [
-            asyncio.to_thread(self.translation.translate, text),
-            asyncio.to_thread(self.embedding.generate_embedding, text)
+            asyncio.to_thread(self.translation.translate, combined_text),
+            asyncio.to_thread(self.embedding.generate_embedding, combined_text)
         ]
         if image_data:
             tasks.append(asyncio.to_thread(self.vision.analyze, image_data))
@@ -57,11 +70,11 @@ class SignalProcessingOrchestrator:
             
         return await asyncio.gather(*tasks)
 
-    async def process_signal(self, text: str, lat: float, lng: float, image_data: Optional[bytes] = None) -> Dict[str, Any]:
+    async def process_signal(self, text: str, lat: float, lng: float, image_data: Optional[bytes] = None, audio_data: Optional[bytes] = None) -> Dict[str, Any]:
         req_start_time = time.time()
         
         # 1. Parallel execution of Translation, Embedding, and Vision
-        translated_text, embedding_vector, vision_text = await self._gather_initial_ai_tasks(text, image_data)
+        translated_text, embedding_vector, vision_text = await self._gather_initial_ai_tasks(text, image_data, audio_data)
         
         # 2. Categorization (depends on translation and vision)
         # We pass both texts to the categorizer context

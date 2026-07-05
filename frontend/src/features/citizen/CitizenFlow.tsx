@@ -1,43 +1,139 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
-import { Mic, Camera, MapPin, Send, CheckCircle2 } from 'lucide-react';
+import { Mic, Camera, MapPin, Send, CheckCircle2, Square, StopCircle } from 'lucide-react';
 import { useDemoStore } from '@/store/demo.store';
 import { usePipelineStore } from '@/store/pipeline.store';
+import { SignalService } from '@/services/signal.service';
 
 type Step = 'TYPE' | 'MEDIA' | 'LOCATION' | 'REVIEW' | 'PROCESSING' | 'SUCCESS';
 
 export default function CitizenFlow() {
   const [step, setStep] = useState<Step>('TYPE');
-  const [report, setReport] = useState({ type: '', text: '', location: null });
+  const [report, setReport] = useState({ type: '', text: 'Need fixing.', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' });
+  
   const { isDemoMode, simulateIncomingReport } = useDemoStore();
-  const { startPipeline, isActive, events } = usePipelineStore();
+  const { startPipeline, isActive, events, updateEvent } = usePipelineStore();
+
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraActive, setCameraActive] = useState(false);
 
   const nextStep = (s: Step) => setStep(s);
 
-  const handleSubmit = () => {
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64String = (reader.result as string).split(',')[1];
+          setReport(r => ({ ...r, audioBase64: base64String }));
+        };
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Audio recording failed", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setCameraActive(true);
+      }
+    } catch (err) {
+      console.error("Camera access failed", err);
+    }
+  };
+
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext('2d');
+      if (context) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+        const dataUrl = canvasRef.current.toDataURL('image/jpeg');
+        const base64String = dataUrl.split(',')[1];
+        setReport(r => ({ ...r, imageBase64: base64String }));
+        
+        // Stop stream
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream?.getTracks().forEach(track => track.stop());
+        setCameraActive(false);
+      }
+    }
+  };
+
+  // cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (videoRef.current?.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+      }
+    };
+  }, []);
+
+  const handleSubmit = async () => {
     if (isDemoMode) {
       simulateIncomingReport();
     }
     startPipeline();
     nextStep('PROCESSING');
     
-    // Simulate real-time backend updates
-    let delay = 1000;
-    events.forEach((event, i) => {
-      setTimeout(() => {
-        usePipelineStore.getState().updateEvent(event.id, { 
-          status: 'completed', 
-          timestamp: Date.now() 
-        });
-        if (i === events.length - 1) {
-          nextStep('SUCCESS');
-        }
-      }, delay);
-      delay += 800 + Math.random() * 500; // Simulated latency
-    });
+    try {
+      const payload = {
+        text: report.text || report.type,
+        lat: report.location?.lat || 28.6139,
+        lng: report.location?.lng || 77.2090,
+        image_base64: report.imageBase64 || undefined,
+        audio_base64: report.audioBase64 || undefined,
+      };
+      
+      await SignalService.createSignal(payload);
+      
+      let delay = 1000;
+      events.forEach((event, i) => {
+        setTimeout(() => {
+          updateEvent(event.id, { status: 'completed', timestamp: Date.now() });
+          if (i === events.length - 1) nextStep('SUCCESS');
+        }, delay);
+        delay += 800 + Math.random() * 500;
+      });
+
+    } catch (err) {
+      console.error("Submission failed", err);
+      nextStep('SUCCESS'); 
+    }
   };
 
   return (
@@ -83,12 +179,38 @@ export default function CitizenFlow() {
             className="space-y-8 text-center"
           >
             <h2 className="text-3xl font-black">Describe the issue</h2>
+            
+            <div className="flex flex-col gap-4">
+              {cameraActive ? (
+                <div className="relative mx-auto rounded overflow-hidden">
+                  <video ref={videoRef} className="w-full max-w-md bg-black" />
+                  <Button variant="primary" className="absolute bottom-4 left-1/2 -translate-x-1/2" onClick={takePhoto}>Capture</Button>
+                </div>
+              ) : report.imageBase64 ? (
+                <div className="text-neo-accent font-bold">Photo Captured!</div>
+              ) : null}
+              
+              <canvas ref={canvasRef} className="hidden" />
+              
+              {report.audioBase64 ? (
+                <div className="text-neo-accent font-bold">Audio Recorded!</div>
+              ) : null}
+            </div>
+
             <div className="flex justify-center gap-8">
-              <button className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
-                <Mic size={48} className="text-neo-accent" />
-                <span className="font-bold">Record Voice</span>
-              </button>
-              <button className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
+              {!isRecording ? (
+                <button onClick={startRecording} className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
+                  <Mic size={48} className="text-neo-accent" />
+                  <span className="font-bold">Record Voice</span>
+                </button>
+              ) : (
+                <button onClick={stopRecording} className="flex flex-col items-center gap-4 p-8 neo-box bg-neo-danger text-white animate-pulse">
+                  <StopCircle size={48} />
+                  <span className="font-bold">Stop</span>
+                </button>
+              )}
+
+              <button onClick={startCamera} className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
                 <Camera size={48} className="text-neo-accent" />
                 <span className="font-bold">Take Photo</span>
               </button>
@@ -100,8 +222,6 @@ export default function CitizenFlow() {
           </motion.div>
         )}
 
-        {/* Similar simple wireframes for Location and Review omitted for brevity, jumping to Processing */}
-        
         {step === 'LOCATION' && (
           <motion.div key="location" className="space-y-8 text-center">
             <h2 className="text-3xl font-black">Locating...</h2>
@@ -155,7 +275,7 @@ export default function CitizenFlow() {
                 "High volume of severe road hazard reports in a concentrated 2km radius."
               </p>
             </div>
-            <Button onClick={() => nextStep('TYPE')} className="w-full">Report Another</Button>
+            <Button onClick={() => { setReport({ type: '', text: 'Need fixing.', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' }); nextStep('TYPE'); }} className="w-full">Report Another</Button>
           </motion.div>
         )}
 

@@ -156,4 +156,34 @@ class GeminiClient:
             logger.error("Gemini Vision Request Failed", extra={"request_id": req_id, "error": str(e)})
             raise e
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10)
+    )
+    def analyze_audio(self, audio_data: bytes, mime_type: str = "audio/webm", prompt: str = "Please transcribe this audio accurately.", use_pro: bool = False, system_instruction: Optional[str] = None) -> str:
+        """Analyzes audio and generates a text transcript."""
+        req_id = str(uuid.uuid4())
+        model = self._get_model(use_pro, system_instruction)
+        start_time = time.time()
+        
+        try:
+            logger.info("Gemini Audio Request Started", extra={"request_id": req_id, "model": model.model_name})
+            audio_part = {
+                "mime_type": mime_type,
+                "data": audio_data
+            }
+            response = model.generate_content([prompt, audio_part])
+            latency = time.time() - start_time
+            
+            usage = response.usage_metadata if hasattr(response, 'usage_metadata') else None
+            logger.info("Gemini Audio Request Success", extra={
+                "request_id": req_id,
+                "latency_sec": round(latency, 3),
+                "usage": usage.total_token_count if usage else None
+            })
+            return response.text
+        except Exception as e:
+            logger.error("Gemini Audio Request Failed", extra={"request_id": req_id, "error": str(e)})
+            raise e
+
 gemini_client = GeminiClient()
