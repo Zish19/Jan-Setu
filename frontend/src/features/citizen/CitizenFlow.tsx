@@ -206,8 +206,9 @@ export default function CitizenFlow() {
       });
 
       nextStep('SUCCESS');
-    } catch (err) {
+    } catch (err: any) {
       console.error("Submission failed", err);
+      setResultData({ error: err.message || err.error?.message || "Fatal Network Error" });
       nextStep('SUCCESS'); 
     }
   };
