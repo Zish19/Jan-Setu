@@ -4,7 +4,7 @@ import { pipeline, env } from '@xenova/transformers';
 env.allowLocalModels = false;
 
 class PipelineSingleton {
-    static task = 'automatic-speech-recognition';
+    static task = 'automatic-speech-recognition' as any;
     static model = 'Xenova/whisper-tiny.en';
     static instance: any = null;
 
