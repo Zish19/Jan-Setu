@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.repositories.domain import ProjectRepository
+from ...repositories.domain import ProjectRepository
 
 router = APIRouter()
 project_repo = ProjectRepository()

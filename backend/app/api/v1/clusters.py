@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
-from app.repositories.domain import ClusterRepository
+from ...repositories.domain import ClusterRepository
 
 router = APIRouter()
 cluster_repo = ClusterRepository()
