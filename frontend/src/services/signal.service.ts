@@ -19,7 +19,7 @@ export interface Signal {
 }
 
 export const SignalService = {
-  createSignal: async (payload: CreateSignalPayload): Promise<ApiResponse<{ status: string }>> => {
+  createSignal: async (payload: CreateSignalPayload): Promise<ApiResponse<any>> => {
     return apiClient.post('/signals', payload);
   },
   
