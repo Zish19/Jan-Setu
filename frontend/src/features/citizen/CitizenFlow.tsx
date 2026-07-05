@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
-import { Mic, Camera, MapPin, Send, CheckCircle2, StopCircle, RefreshCw } from 'lucide-react';
+import { Camera, MapPin, Send, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useDemoStore } from '@/store/demo.store';
 import { usePipelineStore } from '@/store/pipeline.store';
 import { SignalService } from '@/services/signal.service';
@@ -29,18 +29,13 @@ if (typeof window !== 'undefined') {
 
 export default function CitizenFlow() {
   const [step, setStep] = useState<Step>('TYPE');
-  const [report, setReport] = useState({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' });
+  const [report, setReport] = useState({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '' });
   const [resultData, setResultData] = useState<any>(null);
   
   const { isDemoMode, simulateIncomingReport } = useDemoStore();
   const { startPipeline, isActive, events, updateEvent } = usePipelineStore();
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [whisperStatus, setWhisperStatus] = useState<string>('');
-  
-  const workerRef = useRef<Worker | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  // Audio removed by user request
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,60 +65,7 @@ export default function CitizenFlow() {
     setStep(s);
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
-      };
-      
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        
-        // 1. Send to Backend
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          const base64String = (reader.result as string).split(',')[1];
-          setReport(r => ({ ...r, audioBase64: base64String }));
-        };
-        
-        // 2. Decode for Local Whisper WebAssembly
-        const fileReader = new FileReader();
-        fileReader.onload = async (e) => {
-           try {
-             const arrayBuffer = e.target?.result as ArrayBuffer;
-             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-             const audioData = audioBuffer.getChannelData(0);
-             workerRef.current?.postMessage({ type: 'transcribe', audioData });
-           } catch(err) {
-             console.error("Whisper decoding failed", err);
-           }
-        };
-        fileReader.readAsArrayBuffer(audioBlob);
-
-        // Ensure stream tracks are fully stopped
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Audio recording failed", err);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
+  // Audio recording handlers removed
 
   const startCamera = async () => {
     try {
@@ -164,28 +106,10 @@ export default function CitizenFlow() {
   };
 
   useEffect(() => {
-    workerRef.current = new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url));
-    workerRef.current.onmessage = (event) => {
-      const { status, text } = event.data;
-      if (status === 'complete') {
-         setWhisperStatus('');
-         setReport(r => ({ ...r, text: r.text ? `${r.text}\n${text}` : text }));
-      } else if (status === 'decoding') {
-         setWhisperStatus('Transcribing locally with Whisper AI...');
-      } else if (status === 'progress') {
-         setWhisperStatus('Downloading Whisper Model (once)...');
-      }
-    };
-    workerRef.current.postMessage({ type: 'init' });
-
     return () => {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
       }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-        mediaRecorderRef.current.stop();
-      }
-      workerRef.current?.terminate();
     };
   }, []);
 
@@ -211,7 +135,6 @@ export default function CitizenFlow() {
         lat: report.location?.lat || 28.6139,
         lng: report.location?.lng || 77.2090,
         image_base64: report.imageBase64 || undefined,
-        audio_base64: report.audioBase64 || undefined,
       };
       
       const response = await SignalService.createSignal(payload);
@@ -301,42 +224,18 @@ export default function CitizenFlow() {
               
               <canvas ref={canvasRef} className="hidden" />
               
-              {isRecording && (
-                <div className="p-6 border-4 border-black bg-cyan-400 text-black text-left shadow-[6px_6px_0px_rgba(0,0,0,1)] transform scale-105 transition-transform duration-300">
-                  <div className="flex items-center gap-2 font-black mb-3 text-black text-xl animate-pulse">
-                    <Mic size={24} className="animate-bounce" /> LIVE TRANSCRIPTION
-                  </div>
-                  <p className="italic font-bold text-2xl leading-relaxed">
-                    {whisperStatus || "Recording... (Whisper AI will transcribe when you stop)"}
-                  </p>
-                </div>
-              )}
-
-              {!isRecording && report.audioBase64 && (
-                <div className="p-6 border-4 border-black bg-lime-400 text-black text-left shadow-[6px_6px_0px_rgba(0,0,0,1)] transform scale-105 transition-transform duration-300">
-                  <div className="flex items-center gap-2 font-black mb-3 text-black text-xl">
-                    <CheckCircle2 size={24} /> AUDIO CAPTURED
-                  </div>
-                  <p className="italic font-bold text-xl line-clamp-3">
-                    {report.text || "No live speech detected by browser. The backend AI will extract the transcript directly from the audio file upon submission."}
-                  </p>
-                </div>
-              )}
+              <div className="w-full max-w-md mx-auto">
+                <textarea 
+                  className="w-full p-4 border-4 border-black font-bold text-xl neo-box focus:outline-none"
+                  rows={4}
+                  placeholder="Type extra details here..."
+                  value={report.text}
+                  onChange={(e) => setReport(r => ({ ...r, text: e.target.value }))}
+                />
+              </div>
             </div>
 
             <div className="flex justify-center gap-8">
-              {!isRecording ? (
-                <button onClick={startRecording} className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
-                  <Mic size={48} className="text-neo-accent" />
-                  <span className="font-bold">Record Voice</span>
-                </button>
-              ) : (
-                <button onClick={stopRecording} className="flex flex-col items-center gap-4 p-8 neo-box bg-neo-danger text-white animate-pulse">
-                  <StopCircle size={48} />
-                  <span className="font-bold">Stop Recording</span>
-                </button>
-              )}
-
               {!cameraActive && !report.imageBase64 && (
                 <button onClick={startCamera} className="flex flex-col items-center gap-4 p-8 neo-box hover:bg-neo-bg">
                   <Camera size={48} className="text-neo-accent" />
@@ -451,7 +350,7 @@ export default function CitizenFlow() {
               </div>
             )}
 
-            <Button onClick={() => { setReport({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '', audioBase64: '' }); setResultData(null); nextStep('TYPE'); }} className="w-full mt-8 shadow-[6px_6px_0px_rgba(0,0,0,1)] font-bold text-xl h-14 border-4 border-black">Report Another Issue</Button>
+            <Button onClick={() => { setReport({ type: '', text: '', location: { lat: 28.6139, lng: 77.2090 }, imageBase64: '' }); setResultData(null); nextStep('TYPE'); }} className="w-full mt-8 shadow-[6px_6px_0px_rgba(0,0,0,1)] font-bold text-xl h-14 border-4 border-black">Report Another Issue</Button>
           </motion.div>
         )}
 

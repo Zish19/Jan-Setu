@@ -10,7 +10,7 @@ from ...api.dependencies import get_orchestrator
 from ...services.orchestrator import SignalProcessingOrchestrator
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/signals", tags=["Signals"])
+router = APIRouter(tags=["Signals"])
 
 class CreateSignalRequest(BaseModel):
     text: str

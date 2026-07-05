@@ -5,7 +5,7 @@ from ...services.optimizer import BudgetOptimizerService
 from ...core.logging import get_logger
 
 logger = get_logger(__name__)
-router = APIRouter(prefix="/optimize", tags=["Optimization"])
+router = APIRouter(tags=["Optimization"])
 
 def get_optimizer():
     # Placeholder for DI

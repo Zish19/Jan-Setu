@@ -3,8 +3,8 @@ from ..services.vision import VisionService
 from ..services.categorization import CategorizationService
 from ..services.embedding import EmbeddingService
 from ..services.clustering import ClusteringService
-from ..services.geo_verification import GeoVerificationService
-from ..services.priority import PriorityScoringService
+from ..services.geo_verification import GeoVerificationService, MockGeoVerificationProvider
+from ..services.priority import PriorityScoringService, PriorityCalculator
 from ..services.explanation import ExplanationService
 from ..repositories.domain import SignalRepository, ClusterRepository
 from ..services.orchestrator import SignalProcessingOrchestrator
@@ -24,8 +24,8 @@ def get_orchestrator() -> SignalProcessingOrchestrator:
             categorization=CategorizationService(),
             embedding=embedding_svc,
             clustering=ClusteringService(repository=cluster_repo, embedding_service=embedding_svc),
-            geo_verification=GeoVerificationService(),
-            priority=PriorityScoringService(),
+            geo_verification=GeoVerificationService(provider=MockGeoVerificationProvider()),
+            priority=PriorityScoringService(calculator=PriorityCalculator()),
             explanation=ExplanationService(),
             signal_repo=signal_repo,
             cluster_repo=cluster_repo
