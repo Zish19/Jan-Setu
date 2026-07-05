@@ -7,7 +7,7 @@ import { ApiResponse } from './types';
 const getBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return '/api/backend/api/v1'; // Vercel rewrite route
+    return '/api/v1'; // Vercel rewrite route directly mapped
   }
   return 'http://localhost:8000/api/v1';
 };

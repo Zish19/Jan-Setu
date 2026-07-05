@@ -11,7 +11,6 @@ import dynamic from 'next/dynamic';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'regenerator-runtime/runtime';
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false });
@@ -37,8 +36,9 @@ export default function CitizenFlow() {
   const { startPipeline, isActive, events, updateEvent } = usePipelineStore();
 
   const [isRecording, setIsRecording] = useState(false);
-  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition();
+  const [whisperStatus, setWhisperStatus] = useState<string>('');
   
+  const workerRef = useRef<Worker | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -72,11 +72,6 @@ export default function CitizenFlow() {
 
   const startRecording = async () => {
     try {
-      resetTranscript();
-      if (browserSupportsSpeechRecognition) {
-        SpeechRecognition.startListening({ continuous: true, language: 'en-IN' });
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -88,12 +83,30 @@ export default function CitizenFlow() {
       
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // 1. Send to Backend
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
           const base64String = (reader.result as string).split(',')[1];
           setReport(r => ({ ...r, audioBase64: base64String }));
         };
+        
+        // 2. Decode for Local Whisper WebAssembly
+        const fileReader = new FileReader();
+        fileReader.onload = async (e) => {
+           try {
+             const arrayBuffer = e.target?.result as ArrayBuffer;
+             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+             const audioData = audioBuffer.getChannelData(0);
+             workerRef.current?.postMessage({ type: 'transcribe', audioData });
+           } catch(err) {
+             console.error("Whisper decoding failed", err);
+           }
+        };
+        fileReader.readAsArrayBuffer(audioBlob);
+
         // Ensure stream tracks are fully stopped
         stream.getTracks().forEach(track => track.stop());
       };
@@ -109,10 +122,6 @@ export default function CitizenFlow() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-    }
-    SpeechRecognition.stopListening();
-    if (transcript) {
-      setReport(r => ({ ...r, text: r.text ? `${r.text}\n${transcript}` : transcript }));
     }
   };
 
@@ -155,14 +164,28 @@ export default function CitizenFlow() {
   };
 
   useEffect(() => {
+    workerRef.current = new Worker(new URL('../../workers/whisper.worker.ts', import.meta.url));
+    workerRef.current.onmessage = (event) => {
+      const { status, text } = event.data;
+      if (status === 'complete') {
+         setWhisperStatus('');
+         setReport(r => ({ ...r, text: r.text ? `${r.text}\n${text}` : text }));
+      } else if (status === 'decoding') {
+         setWhisperStatus('Transcribing locally with Whisper AI...');
+      } else if (status === 'progress') {
+         setWhisperStatus('Downloading Whisper Model (once)...');
+      }
+    };
+    workerRef.current.postMessage({ type: 'init' });
+
     return () => {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
       }
-      SpeechRecognition.stopListening();
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         mediaRecorderRef.current.stop();
       }
+      workerRef.current?.terminate();
     };
   }, []);
 
@@ -284,7 +307,7 @@ export default function CitizenFlow() {
                     <Mic size={24} className="animate-bounce" /> LIVE TRANSCRIPTION
                   </div>
                   <p className="italic font-bold text-2xl leading-relaxed">
-                    {transcript || (!browserSupportsSpeechRecognition ? "Browser does not support live captions, but audio is being securely recorded..." : "Speak now... AI is listening to your voice!")}
+                    {whisperStatus || "Recording... (Whisper AI will transcribe when you stop)"}
                   </p>
                 </div>
               )}

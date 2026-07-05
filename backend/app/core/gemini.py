@@ -28,7 +28,7 @@ class GeminiClient:
 
     def __init__(self):
         # We reuse models where possible
-        self.flash_model = "gemini-1.5-flash"
+        self.flash_model = "gemini-1.5-pro" # Upgraded by default!
         self.pro_model = "gemini-1.5-pro"
         self.embedding_model = "models/text-embedding-004"
 
