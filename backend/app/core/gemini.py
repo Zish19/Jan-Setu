@@ -28,8 +28,8 @@ class GeminiClient:
 
     def __init__(self):
         # We reuse models where possible
-        self.flash_model = "gemini-1.5-pro" # Upgraded by default!
-        self.pro_model = "gemini-1.5-pro"
+        self.flash_model = "gemini-2.5-flash"
+        self.pro_model = "gemini-2.5-flash"
         self.embedding_model = "models/text-embedding-004"
 
     def _get_model(self, use_pro: bool = False, system_instruction: Optional[str] = None) -> genai.GenerativeModel:
